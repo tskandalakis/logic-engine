@@ -245,15 +245,16 @@ npm run docs
 
 3. **API Features**
    - [ ] `POST /evaluate` endpoint
-   - [ ] Batch subject evaluation
+   - [ ] Batch subject evaluation (large payloads supported)
    - [ ] JSON request/response
    - [ ] OpenAPI documentation
    - [ ] Request validation with clear error messages
+   - [ ] Rate limiting (if supported by framework, otherwise defer to API gateway)
 
 4. **Engine Features**
    - [ ] Dot notation field access (e.g., `user.profile.age`)
    - [ ] Handle missing fields gracefully
-   - [ ] Type coercion rules (or strict typing - TBD)
+   - [ ] Type coercion (e.g., `"25" == 25` evaluates as true)
    - [ ] Validate max nesting depth (2 levels)
 
 ### Phase 2: Extended Operators (Future)
@@ -272,11 +273,6 @@ npm run docs
 - Condition persistence/storage
 - Authentication/authorization (handled by consuming service)
 - Custom operator plugins (for now)
-
-### Open Questions
-
-- [ ] Type coercion: strict comparison only, or allow "25" == 25?
-- [ ] Rate limiting / request size limits?
 
 ## Current Status
 
