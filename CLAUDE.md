@@ -4,141 +4,292 @@ This file provides guidance for Claude Code when working on this project.
 
 ## Project Overview
 
-**logic-engine** - An engine used to check if subject input matches a set of provided conditions.
+**logic-engine** - A generic policy evaluation engine exposed as a REST API. Evaluates whether subject data matches a set of configurable, nested conditions.
 
 ### Purpose
-<!-- TODO: Expand on the project's purpose and use cases -->
-- Evaluate input data against configurable condition sets
-- Provide a flexible rule-matching system
+
+- Provide a generic engine for evaluating various kinds of policies
+- Evaluate input data (subjects) against configurable condition sets
+- Support nested logical conditions for complex policy rules
+- Expose functionality via a well-documented REST API
 
 ### Target Use Cases
-<!-- TODO: Define specific use cases -->
-- Form validation
-- Business rule evaluation
-- Access control decisions
-- Data filtering/matching
+
+- **Policy Evaluation** - Generic rule engine for business policies
+- **Access Control** - Determine if a subject meets authorization criteria
+- **Data Filtering** - Match records against complex filter conditions
+- **Validation Rules** - Evaluate whether data meets defined criteria
 
 ## Tech Stack
 
-<!-- TODO: Finalize technology choices -->
-- **Language**: (To be determined - TypeScript/JavaScript recommended)
-- **Runtime**: (Node.js / Browser / Both)
-- **Build Tool**: (To be determined)
-- **Testing**: (To be determined)
+- **Language**: TypeScript
+- **Runtime**: Node.js
+- **Framework**: Express.js (or Fastify - TBD)
+- **API Documentation**: OpenAPI/Swagger with auto-generated docs from DTOs
+- **Validation**: class-validator + class-transformer (for DTO validation)
+- **Build Tool**: tsup or tsc
+- **Testing**: Jest (or Vitest - TBD)
 
 ## Project Structure
 
 ```
 logic-engine/
-├── CLAUDE.md          # This file
-├── README.md          # Project documentation
-├── LICENSE            # MIT License
-├── src/               # Source code (to be created)
-│   ├── index.ts       # Main entry point
-│   ├── engine/        # Core engine logic
-│   ├── conditions/    # Condition types and evaluators
-│   └── types/         # TypeScript type definitions
-├── tests/             # Test files (to be created)
-└── examples/          # Usage examples (to be created)
+├── CLAUDE.md              # This file
+├── README.md              # Project documentation
+├── LICENSE                # MIT License
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript configuration
+├── src/
+│   ├── index.ts           # Application entry point
+│   ├── app.ts             # Express app setup
+│   ├── routes/            # API route definitions
+│   │   └── evaluate.ts    # POST /evaluate endpoint
+│   ├── controllers/       # Request handlers
+│   │   └── evaluate.controller.ts
+│   ├── services/          # Business logic
+│   │   └── engine.service.ts
+│   ├── engine/            # Core evaluation engine
+│   │   ├── evaluator.ts   # Main evaluation logic
+│   │   └── operators/     # Operator implementations
+│   ├── dto/               # Data Transfer Objects (request/response schemas)
+│   │   ├── evaluate-request.dto.ts
+│   │   ├── evaluate-response.dto.ts
+│   │   └── condition.dto.ts
+│   └── types/             # TypeScript type definitions
+│       └── index.ts
+├── tests/                 # Test files
+└── docs/                  # API documentation
+```
+
+## API Design
+
+### Endpoints
+
+#### `POST /evaluate`
+
+Evaluates a list of subjects against a condition tree.
+
+**Request DTO:**
+
+```typescript
+interface EvaluateRequestDTO {
+  /** Array of subjects to evaluate (valid JSON objects) */
+  subjects: Record<string, unknown>[];
+
+  /** Condition tree to evaluate against */
+  conditions: ConditionNode;
+}
+
+/** A condition can be either a leaf condition or a logical group */
+type ConditionNode = LeafCondition | LogicalGroup;
+
+interface LeafCondition {
+  /** The field path to evaluate (supports dot notation, e.g., "user.age") */
+  field: string;
+
+  /** The comparison operator */
+  operator: ComparisonOperator;
+
+  /** The value to compare against */
+  value: unknown;
+}
+
+interface LogicalGroup {
+  /** Logical operator to combine child conditions */
+  logic: 'AND' | 'OR' | 'NOT';
+
+  /** Child conditions (nested) */
+  conditions: ConditionNode[];
+}
+
+type ComparisonOperator =
+  | 'eq'        // equals
+  | 'neq'       // not equals
+  | 'gt'        // greater than
+  | 'gte'       // greater than or equal
+  | 'lt'        // less than
+  | 'lte';      // less than or equal
+```
+
+**Response DTO:**
+
+```typescript
+interface EvaluateResponseDTO {
+  /** Results for each subject in the same order as input */
+  results: SubjectResult[];
+}
+
+interface SubjectResult {
+  /** Index of the subject in the input array */
+  index: number;
+
+  /** Whether the subject matched all conditions */
+  match: boolean;
+
+  /** Optional: detailed breakdown of condition evaluation */
+  details?: ConditionResult[];
+}
+
+interface ConditionResult {
+  /** The condition that was evaluated */
+  condition: ConditionNode;
+
+  /** Whether this specific condition matched */
+  match: boolean;
+
+  /** Actual value found in the subject */
+  actualValue?: unknown;
+}
+```
+
+**Example Request:**
+
+```json
+{
+  "subjects": [
+    { "age": 25, "status": "active", "role": "admin" },
+    { "age": 17, "status": "active", "role": "user" },
+    { "age": 30, "status": "inactive", "role": "admin" }
+  ],
+  "conditions": {
+    "logic": "AND",
+    "conditions": [
+      { "field": "age", "operator": "gte", "value": 18 },
+      { "field": "status", "operator": "eq", "value": "active" }
+    ]
+  }
+}
+```
+
+**Example Response:**
+
+```json
+{
+  "results": [
+    { "index": 0, "match": true },
+    { "index": 1, "match": false },
+    { "index": 2, "match": false }
+  ]
+}
 ```
 
 ## Development Guidelines
 
 ### Code Style
-<!-- TODO: Define code style preferences -->
+
 - Use clear, descriptive names
 - Keep functions small and focused
-- Write comprehensive tests for condition logic
+- Write comprehensive tests for all operators and edge cases
+- DTOs must be fully documented with JSDoc comments for OpenAPI generation
+
+### DTO Schema Requirements
+
+- All DTOs must use class-validator decorators for validation
+- Include clear JSDoc comments for Swagger documentation
+- Validate nested structures properly
+- Provide meaningful error messages for validation failures
 
 ### Commit Messages
+
 - Use conventional commits format: `type(scope): description`
 - Types: feat, fix, docs, refactor, test, chore
 
 ## Common Commands
 
-<!-- TODO: Add commands once package.json is set up -->
 ```bash
 # Install dependencies
 npm install
 
+# Run development server
+npm run dev
+
 # Run tests
 npm test
 
-# Build
+# Build for production
 npm run build
+
+# Start production server
+npm start
 
 # Lint
 npm run lint
+
+# Generate API docs
+npm run docs
 ```
 
 ## Project Scope & Requirements
 
-### Core Features (To Be Defined)
-<!-- TODO: Refine these features based on project needs -->
+### Phase 1: Core Features (MVP)
 
-1. **Condition Types**
-   - [ ] Equality checks (equals, not equals)
-   - [ ] Comparison operators (gt, lt, gte, lte)
-   - [ ] String matching (contains, startsWith, endsWith, regex)
-   - [ ] Array operations (includes, excludes, all, any)
-   - [ ] Null/undefined checks
-   - [ ] Type checks
+1. **Comparison Operators (Simple)**
+   - [ ] `eq` - equals (strict equality)
+   - [ ] `neq` - not equals
+   - [ ] `gt` - greater than
+   - [ ] `gte` - greater than or equal
+   - [ ] `lt` - less than
+   - [ ] `lte` - less than or equal
 
 2. **Logical Operators**
-   - [ ] AND (all conditions must match)
-   - [ ] OR (any condition must match)
-   - [ ] NOT (negate condition)
-   - [ ] Nested conditions
+   - [ ] `AND` - all conditions must match
+   - [ ] `OR` - any condition must match
+   - [ ] `NOT` - negate condition (single child)
+   - [ ] Nested conditions (unlimited depth)
 
-3. **Engine Features**
-   - [ ] Define condition schema/DSL
-   - [ ] Evaluate single subject against conditions
-   - [ ] Batch evaluation
-   - [ ] Detailed match results/explanations
-   - [ ] Custom condition handlers
+3. **API Features**
+   - [ ] `POST /evaluate` endpoint
+   - [ ] Batch subject evaluation
+   - [ ] JSON request/response
+   - [ ] OpenAPI documentation
+   - [ ] Request validation with clear error messages
 
-### API Design (Draft)
-<!-- TODO: Refine API design -->
-```typescript
-// Example usage concept
-const engine = new LogicEngine();
+4. **Engine Features**
+   - [ ] Dot notation field access (e.g., `user.profile.age`)
+   - [ ] Handle missing fields gracefully
+   - [ ] Type coercion rules (or strict typing - TBD)
 
-const conditions = {
-  operator: 'AND',
-  conditions: [
-    { field: 'age', operator: 'gte', value: 18 },
-    { field: 'status', operator: 'equals', value: 'active' }
-  ]
-};
+### Phase 2: Extended Operators (Future)
 
-const subject = { age: 25, status: 'active' };
+- [ ] `contains` - string contains
+- [ ] `startsWith` / `endsWith` - string prefix/suffix
+- [ ] `regex` - regular expression match
+- [ ] `in` / `notIn` - value in array
+- [ ] `exists` / `notExists` - field existence
+- [ ] `isNull` / `isNotNull` - null checks
 
-const result = engine.evaluate(subject, conditions);
-// => { match: true, details: [...] }
-```
+### Non-Goals (Out of Scope)
 
-### Non-Goals
-<!-- TODO: Define what's out of scope -->
--
+- Async condition evaluation
+- Database integration
+- Condition persistence/storage
+- Authentication/authorization (handled by consuming service)
+- Custom operator plugins (for now)
 
 ### Open Questions
-<!-- TODO: Add questions that need answers -->
-- What serialization format for conditions? (JSON, custom DSL?)
-- Should it support async condition evaluation?
-- What level of error handling/validation is needed?
-- Performance requirements?
+
+- [ ] Should we include detailed evaluation breakdown in response by default, or make it opt-in via query param?
+- [ ] Type coercion: strict comparison only, or allow "25" == 25?
+- [ ] Maximum nesting depth limit for conditions?
+- [ ] Rate limiting / request size limits?
 
 ## Current Status
 
-**Phase**: Initial Setup
+**Phase**: Initial Setup → Project Scaffolding
 
 ### Next Steps
-1. [ ] Finalize tech stack decisions
-2. [ ] Set up package.json and project configuration
-3. [ ] Define core types and interfaces
-4. [ ] Implement basic condition evaluators
-5. [ ] Add comprehensive tests
-6. [ ] Create documentation and examples
+
+1. [ ] Set up package.json with dependencies
+2. [ ] Configure TypeScript (tsconfig.json)
+3. [ ] Set up Express app with basic structure
+4. [ ] Define DTO classes with validation decorators
+5. [ ] Implement core evaluation engine
+6. [ ] Implement comparison operators
+7. [ ] Implement logical operators (AND/OR/NOT)
+8. [ ] Add POST /evaluate endpoint
+9. [ ] Set up OpenAPI/Swagger documentation
+10. [ ] Write comprehensive tests
+11. [ ] Add error handling middleware
 
 ---
 
