@@ -235,7 +235,7 @@ npm run docs
    - [ ] `AND` - all conditions must match
    - [ ] `OR` - any condition must match
    - [ ] `NOT` - negate condition (single child)
-   - [ ] Nested conditions (unlimited depth)
+   - [ ] Nested conditions (max depth: 2)
 
 3. **API Features**
    - [ ] `POST /evaluate` endpoint
@@ -248,6 +248,7 @@ npm run docs
    - [ ] Dot notation field access (e.g., `user.profile.age`)
    - [ ] Handle missing fields gracefully
    - [ ] Type coercion rules (or strict typing - TBD)
+   - [ ] Validate max nesting depth (2 levels)
 
 ### Phase 2: Extended Operators (Future)
 
@@ -270,7 +271,6 @@ npm run docs
 
 - [ ] Should we include detailed evaluation breakdown in response by default, or make it opt-in via query param?
 - [ ] Type coercion: strict comparison only, or allow "25" == 25?
-- [ ] Maximum nesting depth limit for conditions?
 - [ ] Rate limiting / request size limits?
 
 ## Current Status
