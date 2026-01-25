@@ -69,6 +69,12 @@ logic-engine/
 
 Evaluates a list of subjects against a condition tree.
 
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `details` | boolean | `false` | Include detailed evaluation breakdown per condition in response |
+
 **Request DTO:**
 
 ```typescript
@@ -269,7 +275,6 @@ npm run docs
 
 ### Open Questions
 
-- [ ] Should we include detailed evaluation breakdown in response by default, or make it opt-in via query param?
 - [ ] Type coercion: strict comparison only, or allow "25" == 25?
 - [ ] Rate limiting / request size limits?
 
